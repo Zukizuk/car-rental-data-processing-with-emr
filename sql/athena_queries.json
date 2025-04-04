@@ -1,0 +1,7 @@
+{
+  "Queries": [
+    "SELECT location_name, city, state, total_revenue FROM location_performance ORDER BY total_revenue DESC LIMIT 1;",
+    "SELECT vehicle_type, total_rentals FROM vehicle_type_performance ORDER BY total_rentals DESC LIMIT 1;",
+    "SELECT user_id, first_name, last_name, email, total_revenue FROM user_metrics ORDER BY total_revenue DESC LIMIT 10;"
+  ]
+}

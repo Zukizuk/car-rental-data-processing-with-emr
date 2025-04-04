@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-
+import logging
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import col, count, sum, avg, max, min, countDistinct, to_timestamp, datediff, hour, date_format
+from pyspark.sql.functions import col, count, sum, avg, max, min, countDistinct, to_timestamp
 from pyspark.sql.types import *
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 def main():
     # Create Spark session
@@ -52,16 +56,15 @@ def main():
         StructField("total_amount", DoubleType(), True)
     ])
 
-    # Input paths - change these to your S3 locations
-    vehicles_path = "s3://your-bucket/raw/vehicles/"
-    locations_path = "s3://your-bucket/raw/locations/"
-    rental_txn_path = "s3://your-bucket/raw/rental_transactions/"
+    vehicles_path = "s3://emr-bucket-p4-zuki/data/vehicles.csv"
+    locations_path = "s3://emr-bucket-p4-zuki/data/locations.csv"
+    rental_txn_path = "s3://emr-bucket-p4-zuki/data/rental_transactions.csv"
     
     # Output paths - change these to your S3 locations
-    location_performance_output = "s3://your-bucket/processed/location_performance/"
-    vehicle_type_performance_output = "s3://your-bucket/processed/vehicle_type_performance/"
-    top_locations_output = "s3://your-bucket/processed/top_locations/"
-    top_vehicles_output = "s3://your-bucket/processed/top_vehicles/"
+    location_performance_output = "s3://emr-bucket-p4-zuki/processed/location_performance/"
+    vehicle_type_performance_output = "s3://emr-bucket-p4-zuki/processed/vehicle_type_performance/"
+    top_locations_output = "s3://emr-bucket-p4-zuki/processed/top_locations/"
+    top_vehicles_output = "s3://emr-bucket-p4-zuki/processed/top_vehicles/"
 
     # Load the data
     try:
@@ -69,7 +72,7 @@ def main():
         locations_df = spark.read.csv(locations_path, header=True, schema=locations_schema)
         rental_txn_df = spark.read.csv(rental_txn_path, header=True, schema=rental_transactions_schema)
         
-        print("Data loaded successfully")
+        logger.info("Data loaded successfully")
         
         # Process rental transactions
         rental_txn_df = rental_txn_df.withColumn(
@@ -98,7 +101,7 @@ def main():
         # Join with vehicles to get vehicle type information
         rental_vehicle_df = rental_txn_df.join(vehicles_df, on="vehicle_id", how="left")
         
-        print("Data transformation completed")
+        logger.info("Data transformation completed")
 
         # 1. Location Performance Metrics
         location_performance = rental_txn_df.groupBy("pickup_location") \
@@ -151,7 +154,7 @@ def main():
             ) \
             .orderBy(col("total_rentals").desc())
         
-        print("KPI calculations completed")
+        logger.info("KPI calculations completed")
 
         # Write results to Parquet format
         location_performance.write.mode("overwrite").parquet(location_performance_output)
@@ -159,23 +162,23 @@ def main():
         top_locations.write.mode("overwrite").parquet(top_locations_output)
         top_vehicles.write.mode("overwrite").parquet(top_vehicles_output)
         
-        print("Results written to S3")
+        logger.info("Results written to S3")
         
         # Display sample results (in EMR this would be logged)
-        print("Sample Location Performance:")
+        logger.info("Sample Location Performance:")
         location_performance.show(5, False)
         
-        print("Sample Vehicle Type Performance:")
+        logger.info("Sample Vehicle Type Performance:")
         vehicle_type_performance.show(5, False)
         
-        print("Top Revenue Locations:")
+        logger.info("Top Revenue Locations:")
         top_locations.show(5, False)
         
-        print("Top Rented Vehicles:")
+        logger.info("Top Rented Vehicles:")
         top_vehicles.show(5, False)
         
     except Exception as e:
-        print(f"Error processing data: {str(e)}")
+        logger.error(f"Error processing data: {str(e)}")
     
     finally:
         # Stop Spark session

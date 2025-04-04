@@ -4,8 +4,13 @@ from pyspark.sql import SparkSession
 from pyspark.sql.functions import col, count, sum, avg, max, min, date_format, to_timestamp, when, round
 from pyspark.sql.types import *
 from pyspark.sql.window import Window
+import logging
 
 def main():
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger(__name__)
+
     # Create Spark session
     spark = SparkSession.builder \
         .appName("User and Transaction Analysis") \
@@ -36,22 +41,22 @@ def main():
         StructField("total_amount", DoubleType(), True)
     ])
 
-    # Input paths - change these to your S3 locations
-    users_path = "s3://your-bucket/raw/users/"
-    rental_txn_path = "s3://your-bucket/raw/rental_transactions/"
+    # Input paths 
+    users_path = "s3://emr-bucket-p4-zuki/data/users.csv"
+    rental_txn_path = "s3://emr-bucket-p4-zuki/data/rental_transactions.csv"
     
-    # Output paths - change these to your S3 locations
-    daily_metrics_output = "s3://your-bucket/processed/daily_metrics/"
-    user_metrics_output = "s3://your-bucket/processed/user_metrics/"
-    top_users_output = "s3://your-bucket/processed/top_users/"
-    avg_transaction_output = "s3://your-bucket/processed/avg_transaction_value/"
+    # Output paths 
+    daily_metrics_output = "s3://emr-bucket-p4-zuki/processed/daily_metrics/"
+    user_metrics_output = "s3://emr-bucket-p4-zuki/processed/user_metrics/"
+    top_users_output = "s3://emr-bucket-p4-zuki/processed/top_users/"
+    avg_transaction_output = "s3://emr-bucket-p4-zuki/processed/avg_transaction_value/"
 
     try:
         # Load the data
         users_df = spark.read.csv(users_path, header=True, schema=users_schema)
         rental_txn_df = spark.read.csv(rental_txn_path, header=True, schema=rental_transactions_schema)
         
-        print("Data loaded successfully")
+        logger.info("Data loaded successfully")
         
         # Process rental transactions
         rental_txn_df = rental_txn_df.withColumn(
@@ -74,7 +79,7 @@ def main():
             date_format(col("rental_start_time"), "yyyy-MM-dd")
         )
         
-        print("Data transformation completed")
+        logger.info("Data transformation completed")
 
         # 1. Daily Transaction Metrics
         daily_metrics = rental_txn_df.groupBy("rental_date") \
@@ -120,7 +125,7 @@ def main():
         # 4. Top spending users
         top_users = user_metrics.orderBy(col("total_revenue").desc())
         
-        print("KPI calculations completed")
+        logger.info("KPI calculations completed")
 
         # Write results to Parquet format
         daily_metrics.write.mode("overwrite").parquet(daily_metrics_output)
@@ -128,23 +133,23 @@ def main():
         top_users.write.mode("overwrite").parquet(top_users_output)
         avg_transaction_value.write.mode("overwrite").parquet(avg_transaction_output)
         
-        print("Results written to S3")
+        logger.info("Results written to S3")
         
-        # Display sample results (in EMR this would be logged)
-        print("Sample Daily Metrics:")
+        # Log sample results
+        logger.info("Sample Daily Metrics:")
         daily_metrics.show(5, False)
         
-        print("Overall Transaction Metrics:")
+        logger.info("Overall Transaction Metrics:")
         avg_transaction_value.show(False)
         
-        print("Sample User Metrics:")
+        logger.info("Sample User Metrics:")
         user_metrics.show(5, False)
         
-        print("Top Spending Users:")
+        logger.info("Top Spending Users:")
         top_users.show(5, False)
         
     except Exception as e:
-        print(f"Error processing data: {str(e)}")
+        logger.error(f"Error processing data: {str(e)}")
     
     finally:
         # Stop Spark session

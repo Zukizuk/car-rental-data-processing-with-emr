@@ -1,0 +1,182 @@
+{
+  "Comment": "Car Rental Marketplace Analytics",
+  "StartAt": "Parallel Processing",
+  "States": {
+    "Parallel Processing": {
+      "Type": "Parallel",
+      "Branches": [
+        {
+          "StartAt": "Compute Vehicle_Location Metrics",
+          "States": {
+            "Compute Vehicle_Location Metrics": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::elasticmapreduce:addStep.sync",
+              "Parameters": {
+                "ClusterId": "j-8I8AM4U9WRT2",
+                "Step": {
+                  "Name": "Run Spark Job One",
+                  "ActionOnFailure": "CONTINUE",
+                  "HadoopJarStep": {
+                    "Jar": "command-runner.jar",
+                    "Args": [
+                      "spark-submit",
+                      "s3://emr-bucket-p4-zuki/scripts/spark-job-1.py"
+                    ]
+                  }
+                }
+              },
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "User and Txn Metrics",
+          "States": {
+            "User and Txn Metrics": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::elasticmapreduce:addStep.sync",
+              "Parameters": {
+                "ClusterId": "j-8I8AM4U9WRT2",
+                "Step": {
+                  "Name": "Run Spark Job Two",
+                  "ActionOnFailure": "CONTINUE",
+                  "HadoopJarStep": {
+                    "Jar": "command-runner.jar",
+                    "Args": [
+                      "spark-submit",
+                      "s3://emr-bucket-p4-zuki/scripts/spark-job-2.py"
+                    ]
+                  }
+                }
+              },
+              "End": true
+            }
+          }
+        }
+      ],
+      "Next": "StartCrawler"
+    },
+    "StartCrawler": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:startCrawler",
+      "Parameters": {
+        "Name": "crawl_processed_data"
+      },
+      "Next": "WaitForCrawler"
+    },
+    "WaitForCrawler": {
+      "Type": "Wait",
+      "Seconds": 30,
+      "Next": "CheckCrawlerStatus"
+    },
+    "CheckCrawlerStatus": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:glue:getCrawler",
+      "Parameters": {
+        "Name": "crawl_processed_data"
+      },
+      "Next": "IsCrawlingComplete"
+    },
+    "IsCrawlingComplete": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Crawler.State",
+          "StringEquals": "READY",
+          "Next": "ReadQueriesFromS3"
+        },
+        {
+          "Variable": "$.Crawler.State",
+          "StringEquals": "STOPPING",
+          "Next": "ReadQueriesFromS3"
+        }
+      ],
+      "Default": "WaitForCrawler"
+    },
+    "ReadQueriesFromS3": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
+      "Parameters": {
+        "Bucket": "emr-bucket-p4-zuki",
+        "Key": "queries/athena_queries.json"
+      },
+      "Next": "ParseS3Response"
+    },
+    "ParseS3Response": {
+      "Type": "Pass",
+      "Parameters": {
+        "ParsedBody.$": "States.StringToJson($.Body)"
+      },
+      "Next": "ProcessQueries"
+    },
+    "ProcessQueries": {
+      "Type": "Map",
+      "ItemsPath": "$.ParsedBody.Queries",
+      "MaxConcurrency": 1,
+      "Iterator": {
+        "StartAt": "RunAthenaQuery",
+        "States": {
+          "RunAthenaQuery": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:athena:startQueryExecution",
+            "Parameters": {
+              "QueryString.$": "$",
+              "QueryExecutionContext": {
+                "Database": "project-4"
+              },
+              "ResultConfiguration": {
+                "OutputLocation": "s3://emr-bucket-p4-zuki/output/"
+              }
+            },
+            "Next": "WaitForAthenaQuery"
+          },
+          "WaitForAthenaQuery": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "CheckAthenaQueryStatus"
+          },
+          "CheckAthenaQueryStatus": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::aws-sdk:athena:getQueryExecution",
+            "Parameters": {
+              "QueryExecutionId.$": "$.QueryExecutionId"
+            },
+            "Next": "IsAthenaQueryComplete"
+          },
+          "IsAthenaQueryComplete": {
+            "Type": "Choice",
+            "Choices": [
+              {
+                "Variable": "$.QueryExecution.Status.State",
+                "StringEquals": "SUCCEEDED",
+                "Next": "QuerySuccess"
+              },
+              {
+                "Variable": "$.QueryExecution.Status.State",
+                "StringEquals": "FAILED",
+                "Next": "FailQuery"
+              }
+            ],
+            "Default": "WaitForAthenaQuery"
+          },
+          "QuerySuccess": {
+            "Type": "Pass",
+            "Result": "Query Executed Successfully!",
+            "End": true
+          },
+          "FailQuery": {
+            "Type": "Fail",
+            "Error": "AthenaQueryFailed",
+            "Cause": "Query execution failed inside Map state."
+          }
+        }
+      },
+      "Next": "SuccessState"
+    },
+    "SuccessState": {
+      "Type": "Pass",
+      "Result": "All Queries Executed!",
+      "End": true
+    }
+  }
+}
