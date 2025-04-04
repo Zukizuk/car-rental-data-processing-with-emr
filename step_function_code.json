@@ -97,7 +97,7 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::aws-sdk:s3:getObject",
       "Parameters": {
-        "Bucket": "emr-bucket-p4-zuki",
+        "Bucket": "your-bucket-name",
         "Key": "queries/athena_queries.json"
       },
       "Next": "ParseS3Response"
@@ -125,7 +125,7 @@
                 "Database": "project-4"
               },
               "ResultConfiguration": {
-                "OutputLocation": "s3://emr-bucket-p4-zuki/output/"
+                "OutputLocation": "s3://your-bucket/output/"
               }
             },
             "Next": "WaitForAthenaQuery"
