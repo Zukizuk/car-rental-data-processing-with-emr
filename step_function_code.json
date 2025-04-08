@@ -12,7 +12,7 @@
               "Type": "Task",
               "Resource": "arn:aws:states:::elasticmapreduce:addStep.sync",
               "Parameters": {
-                "ClusterId": "j-8I8AM4U9WRT2",
+                "ClusterId": "cluster-id-here",
                 "Step": {
                   "Name": "Run Spark Job One",
                   "ActionOnFailure": "CONTINUE",
@@ -20,7 +20,7 @@
                     "Jar": "command-runner.jar",
                     "Args": [
                       "spark-submit",
-                      "s3://emr-bucket-p4-zuki/scripts/spark-job-1.py"
+                      "s3://your-bucket/scripts/spark-job-1.py"
                     ]
                   }
                 }
@@ -36,7 +36,7 @@
               "Type": "Task",
               "Resource": "arn:aws:states:::elasticmapreduce:addStep.sync",
               "Parameters": {
-                "ClusterId": "j-8I8AM4U9WRT2",
+                "ClusterId": "cluster-id-here",
                 "Step": {
                   "Name": "Run Spark Job Two",
                   "ActionOnFailure": "CONTINUE",
@@ -44,7 +44,7 @@
                     "Jar": "command-runner.jar",
                     "Args": [
                       "spark-submit",
-                      "s3://emr-bucket-p4-zuki/scripts/spark-job-2.py"
+                      "s3://your-bucket/scripts/spark-job-2.py"
                     ]
                   }
                 }

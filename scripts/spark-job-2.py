@@ -42,14 +42,14 @@ def main():
     ])
 
     # Input paths 
-    users_path = "s3://emr-bucket-p4-zuki/data/users.csv"
-    rental_txn_path = "s3://emr-bucket-p4-zuki/data/rental_transactions.csv"
+    users_path = "s3://your-bucket/data/users.csv"
+    rental_txn_path = "s3://your-bucket/data/rental_transactions.csv"
     
     # Output paths 
-    daily_metrics_output = "s3://emr-bucket-p4-zuki/processed/daily_metrics/"
-    user_metrics_output = "s3://emr-bucket-p4-zuki/processed/user_metrics/"
-    top_users_output = "s3://emr-bucket-p4-zuki/processed/top_users/"
-    avg_transaction_output = "s3://emr-bucket-p4-zuki/processed/avg_transaction_value/"
+    daily_metrics_output = "s3://your-bucket/processed/daily_metrics/"
+    user_metrics_output = "s3://your-bucket/processed/user_metrics/"
+    top_users_output = "s3://your-bucket/processed/top_users/"
+    avg_transaction_output = "s3://your-bucket/processed/avg_transaction_value/"
 
     try:
         # Load the data

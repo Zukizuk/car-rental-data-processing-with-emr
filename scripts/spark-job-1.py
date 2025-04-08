@@ -56,15 +56,15 @@ def main():
         StructField("total_amount", DoubleType(), True)
     ])
 
-    vehicles_path = "s3://emr-bucket-p4-zuki/data/vehicles.csv"
-    locations_path = "s3://emr-bucket-p4-zuki/data/locations.csv"
-    rental_txn_path = "s3://emr-bucket-p4-zuki/data/rental_transactions.csv"
+    vehicles_path = "s3://your-bucket/data/vehicles.csv"
+    locations_path = "s3://your-bucket/data/locations.csv"
+    rental_txn_path = "s3://your-bucket/data/rental_transactions.csv"
     
     # Output paths - change these to your S3 locations
-    location_performance_output = "s3://emr-bucket-p4-zuki/processed/location_performance/"
-    vehicle_type_performance_output = "s3://emr-bucket-p4-zuki/processed/vehicle_type_performance/"
-    top_locations_output = "s3://emr-bucket-p4-zuki/processed/top_locations/"
-    top_vehicles_output = "s3://emr-bucket-p4-zuki/processed/top_vehicles/"
+    location_performance_output = "s3://your-bucket/processed/location_performance/"
+    vehicle_type_performance_output = "s3://your-bucket/processed/vehicle_type_performance/"
+    top_locations_output = "s3://your-bucket/processed/top_locations/"
+    top_vehicles_output = "s3://your-bucket/processed/top_vehicles/"
 
     # Load the data
     try:
